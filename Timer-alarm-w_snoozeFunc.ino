@@ -91,6 +91,26 @@ unsigned long timerTimeRemaining_T = 0;
 unsigned long prevUpdateTimer_T = 0;
 bool ringEn = false;
 
+//strip modes
+#define F_Green 1
+#define F_Red   2
+#define knobZeroColor 3
+#define snoozeColor 4
+#define alarmColor 5
+
+
+/*
+ * Mode 1:green
+ *      2:red
+ *      3:knobzeroColor //whatever the color is when the knob is turned to 0
+ *      4:
+ *      5:
+ *      6:
+ */
+uint8_t ledstripMode = 0; //this is for keeping track what is shown on the strip to prevent unneccesary writing to the strip what will result in slow and buggy timer code.
+
+
+ 
 void setup() {
   //ledstrip start
   strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
@@ -199,8 +219,7 @@ bool updateANDcheckTimerDone(){
   
 void ringAlarmSeq(){
   //setleds
-  strip.fill(GREEN_RGB);
-  strip.show();
+  setStripToMod(alarmColor);
   
   noTone(buzzer_PIN); 
     
@@ -213,8 +232,7 @@ void ringAlarmSeq(){
 
 void snooze(long time_ms){
   //set leds
-  strip.fill(RED_RGB);
-  strip.show();
+  setStripToMod(snoozeColor);
 
   
   set_timer(time_ms);
@@ -242,8 +260,7 @@ void beepfeedback(){
   if(get_rotaryKnobVal(pot_PIN) < 33 && BeepedFor_LT33 == false){
     BeepedFor_LT33 = true;
     
-    strip.fill(BLACK_RGB);
-    strip.show();
+    setStripToMod(knobZeroColor);//set the required strip color
     
     noTone(buzzer_PIN); 
     for(int i = 0; i < knobToZero_CNT; i){ //beep specified amount of times   
@@ -340,4 +357,49 @@ void rainbowFade2White(int wait, int rainbowLoops, int whiteLoops) {
   }
 
   delay(500); // Pause 1/2 second
+}
+
+void setPixelColorRange(int xLow, int xHigh, uint32_t Color32){//example i want pixels 0-6 to red setPixelColorRange(0, 6, strip.Color(255, 0 ,0));
+    for(int i = xLow; i < xHigh; i++){
+      strip.setPixelColor(i, Color32);
+    }
+}
+
+void setStripToMod(int Mode){ //setup the modes here
+  static int prevMode = -1;
+  if(Mode != prevMode){//only if the mode has changed update the ledstrip
+    switch (Mode){
+      case F_Green:
+        strip.clear();
+        strip.fill(strip.Color(0, 255, 0));
+        strip.show();
+        break;
+        
+      case F_Red:
+        strip.clear();
+        strip.fill(strip.Color(255, 0, 0));
+        strip.show();
+        break;
+        
+      case knobZeroColor:
+        strip.clear();
+        setPixelColorRange(0, 6, strip.Color(255, 0, 255));
+        setPixelColorRange(6, 12, strip.Color(0, 255, 255));
+        strip.show();
+        break;
+        
+      case alarmColor:
+        strip.clear();
+        strip.fill(strip.Color(0, 255, 0));
+        strip.show();      
+        break;
+        
+      case snoozeColor:
+        strip.clear();
+        strip.fill(strip.Color(255, 0, 0));
+        strip.show();
+        break;
+    }
+  }
+  prevMode = Mode;
 }
