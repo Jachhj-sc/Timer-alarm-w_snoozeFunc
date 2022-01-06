@@ -47,13 +47,13 @@ Adafruit_NeoPixel strip(LEDPIX_COUNT, LEDSTRIP_PIN, NEO_GRBW + NEO_KHZ800);
 
 
 //sounds pitch(TONE) and amount of beeps(CNT) or duration the length of a beep
-#define ALARM_TONE 3500
-#define ALARM_CNT 4
-#define ALARM_TONEINT 1500
+#define ALARM_TONE 3500             //Pitch height in Hertz
+#define ALARM_CNT 4                 //Amount of beeps in a cluster
+#define ALARM_TONEINT 1500          //Interval between beep clusters
 #define knobToZero_TONE 2500
 #define knobToZero_CNT 1
 #define knobChangedfewsec_TONE 3000
-#define knobChangedfewsec_TONEdur 5
+#define knobChangedfewsec_TONEdur 5 //duration of the beep when you tunrned the knob a certain amount
 #define STARTTIMER_CNT 2
 #define STARTTIMER_TONE 3000
 
@@ -94,22 +94,13 @@ unsigned long timerTimeRemaining_T = 0;
 unsigned long prevUpdateTimer_T = 0;
 bool ringEn = false;
 
-//strip modes
+//Light modes
 #define F_Green 1
 #define F_Red   2
 #define knobZero_FB 3
 #define snooze_FB 4
 #define alarm_FB 5
 
-
-/*
- * Mode 1:green
- *      2:red
- *      3:knobZero_FB //whatever the color is when the knob is turned to 0
- *      4:
- *      5:
- *      6:
- */
 uint8_t ledstripMode = 0; //this is for keeping track what is shown on the strip to prevent unneccesary writing to the strip what will result in slow and buggy timer code.
 
 
