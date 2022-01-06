@@ -23,16 +23,19 @@
 #define buttSnooze0_PIN 7
 #define buttSnooze1_PIN 8
 
+#define LED0_PIN 4
 #define buzzer_PIN 3
 #define pot_PIN A0
 
 //leds(WS2812)
-#define LED_PIN 10
-#define LED_COUNT  16 //or 32 if you connect 2 rings
+#define LEDSTRIP_PIN 10
+#define LEDPIX_COUNT  16 //or 32 if you connect 2 rings
 #define BRIGHTNESS 50
 
+
+
 // Declare our NeoPixel strip object:
-Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRBW + NEO_KHZ800);
+Adafruit_NeoPixel strip(LEDPIX_COUNT, LEDSTRIP_PIN, NEO_GRBW + NEO_KHZ800);
 // Argument 1 = Number of pixels in NeoPixel strip
 // Argument 2 = Arduino pin number (most are valid)
 // Argument 3 = Pixel type flags, add together as needed:
@@ -94,15 +97,15 @@ bool ringEn = false;
 //strip modes
 #define F_Green 1
 #define F_Red   2
-#define knobZeroColor 3
-#define snoozeColor 4
-#define alarmColor 5
+#define knobZero_FB 3
+#define snooze_FB 4
+#define alarm_FB 5
 
 
 /*
  * Mode 1:green
  *      2:red
- *      3:knobzeroColor //whatever the color is when the knob is turned to 0
+ *      3:knobZero_FB //whatever the color is when the knob is turned to 0
  *      4:
  *      5:
  *      6:
@@ -128,7 +131,8 @@ void setup() {
 
   //init onboard led
   pinMode(LED_BUILTIN, OUTPUT);
-
+  pinMode(LED0_PIN, OUTPUT);
+  
   //init buzzer
   pinMode(buzzer_PIN, OUTPUT);
 
@@ -175,7 +179,7 @@ void timerFlow(){
     ringEn = true;
   }
   
-  static int prevbeeptime_T = 0;
+  static unsigned long prevbeeptime_T = 0;
   if(updateANDcheckTimerDone() && ringEn){      
     //checkbuttons for snooze
     //or knob turned back fully for stop, get_rotaryKnobVal
@@ -219,7 +223,7 @@ bool updateANDcheckTimerDone(){
   
 void ringAlarmSeq(){
   //setleds
-  setStripToMod(alarmColor);
+  update_feedback(alarm_FB);
   
   noTone(buzzer_PIN); 
     
@@ -232,7 +236,7 @@ void ringAlarmSeq(){
 
 void snooze(long time_ms){
   //set leds
-  setStripToMod(snoozeColor);
+  update_feedback(snooze_FB);
 
   
   set_timer(time_ms);
@@ -257,18 +261,15 @@ void beepfeedback(){
 
   //beep two times if the knob reached 0 and everything turns of 
   static bool BeepedFor_LT33 = false;
-  if(get_rotaryKnobVal(pot_PIN) < 33 && BeepedFor_LT33 == false){
+  if(get_rotaryKnobVal(pot_PIN) < 33 && BeepedFor_LT33 == false){//beep for knob zero
     BeepedFor_LT33 = true;
-    
-    setStripToMod(knobZeroColor);//set the required strip color
-    
+    update_feedback(knobZero_FB);//set the required strip color
     noTone(buzzer_PIN); 
     for(int i = 0; i < knobToZero_CNT; i){ //beep specified amount of times   
       if(beep(buzzer_PIN, 150, 100, knobToZero_TONE)){
          i++;
       }     
-    }
-    
+    }    
   }else if (get_rotaryKnobVal(pot_PIN) >= 33){
      BeepedFor_LT33 = false;
   }
@@ -305,67 +306,13 @@ bool beep(short buzz_PIN, unsigned long interval_ms, unsigned long duration_ms, 
   return 0;
 }
 
-//LED efects
-void rainbowFade2White(int wait, int rainbowLoops, int whiteLoops) {
-  int fadeVal=0, fadeMax=100;
-
-  // Hue of first pixel runs 'rainbowLoops' complete loops through the color
-  // wheel. Color wheel has a range of 65536 but it's OK if we roll over, so
-  // just count from 0 to rainbowLoops*65536, using steps of 256 so we
-  // advance around the wheel at a decent clip.
-  for(uint32_t firstPixelHue = 0; firstPixelHue < rainbowLoops*65536;
-    firstPixelHue += 256) {
-
-    for(int i=0; i<strip.numPixels(); i++) { // For each pixel in strip...
-
-      // Offset pixel hue by an amount to make one full revolution of the
-      // color wheel (range of 65536) along the length of the strip
-      // (strip.numPixels() steps):
-      uint32_t pixelHue = firstPixelHue + (i * 65536L / strip.numPixels());
-
-      // strip.ColorHSV() can take 1 or 3 arguments: a hue (0 to 65535) or
-      // optionally add saturation and value (brightness) (each 0 to 255).
-      // Here we're using just the three-argument variant, though the
-      // second value (saturation) is a constant 255.
-      strip.setPixelColor(i, strip.gamma32(strip.ColorHSV(pixelHue, 255,
-        255 * fadeVal / fadeMax)));
-    }
-
-    strip.show();
-    delay(wait);
-
-    if(firstPixelHue < 65536) {                              // First loop,
-      if(fadeVal < fadeMax) fadeVal++;                       // fade in
-    } else if(firstPixelHue >= ((rainbowLoops-1) * 65536)) { // Last loop,
-      if(fadeVal > 0) fadeVal--;                             // fade out
-    } else {
-      fadeVal = fadeMax; // Interim loop, make sure fade is at max
-    }
-  }
-
-  for(int k=0; k<whiteLoops; k++) {
-    for(int j=0; j<256; j++) { // Ramp up 0 to 255
-      // Fill entire strip with white at gamma-corrected brightness level 'j':
-      strip.fill(strip.Color(0, 0, 0, strip.gamma8(j)));
-      strip.show();
-    }
-    delay(1000); // Pause 1 second
-    for(int j=255; j>=0; j--) { // Ramp down 255 to 0
-      strip.fill(strip.Color(0, 0, 0, strip.gamma8(j)));
-      strip.show();
-    }
-  }
-
-  delay(500); // Pause 1/2 second
-}
-
 void setPixelColorRange(int xLow, int xHigh, uint32_t Color32){//example i want pixels 0-6 to red setPixelColorRange(0, 6, strip.Color(255, 0 ,0));
     for(int i = xLow; i < xHigh; i++){
       strip.setPixelColor(i, Color32);
     }
 }
 
-void setStripToMod(int Mode){ //setup the modes here
+void update_feedback(int Mode){ //setup the modes here
   static int prevMode = -1;
   if(Mode != prevMode){//only if the mode has changed update the ledstrip
     switch (Mode){
@@ -381,22 +328,21 @@ void setStripToMod(int Mode){ //setup the modes here
         strip.show();
         break;
         
-      case knobZeroColor:
+      case knobZero_FB:
+        digitalWrite(LED0_PIN, LOW);
         strip.clear();
-        setPixelColorRange(0, 6, strip.Color(255, 0, 255));
-        setPixelColorRange(6, 12, strip.Color(0, 255, 255));
         strip.show();
         break;
         
-      case alarmColor:
+      case alarm_FB: 
+        digitalWrite(LED0_PIN, HIGH);
         strip.clear();
-        strip.fill(strip.Color(0, 255, 0));
-        strip.show();      
+        strip.show();
         break;
         
-      case snoozeColor:
+      case snooze_FB:
+        digitalWrite(LED0_PIN, LOW);
         strip.clear();
-        strip.fill(strip.Color(255, 0, 0));
         strip.show();
         break;
     }
